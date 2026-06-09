@@ -32,7 +32,7 @@ int pellets = 0;
 bool running = true;
 bool victoria = false;
 
-/* Este mapa se usa solo si no se encuentra el archivo mapa.txt. */
+/* Este mapa se usa si no se encuentra el archivo mapa.txt. */
 char mapaDefault[FILAS][COLUMNAS + 1] = {
     "#####################",
     "#P........#........F#",
@@ -51,14 +51,31 @@ char mapaDefault[FILAS][COLUMNAS + 1] = {
     "#####################"
 };
 
+/* Lee el mapa desde mapa.txt o usa el mapa de respaldo. */
 void cargarMapa(void);
+
+/* Busca jugador, fantasmas y pellets dentro del mapa. */
 void buscarPersonajes(void);
+
+/* Mueve al jugador si la casilla nueva no es pared. */
 void moverJugador(int cambioFila, int cambioCol);
+
+/* Mueve los fantasmas con reglas simples. */
 void moverFantasmas(void);
+
+/* Revisa si un fantasma toca al jugador. */
 void revisarChoqueConFantasmas(void);
+
+/* Regresa jugador y fantasmas a su posicion inicial. */
 void reiniciarPosiciones(void);
+
+/* Guarda el puntaje final en puntajes.txt. */
 void guardarPuntaje(void);
+
+/* Dibuja bloques simples para representar puntos o vidas. */
 void dibujarTextoSimple(SDL_Renderer *renderer, int x, int y, int numero);
+
+/* Dibuja todos los elementos del juego. */
 void renderizar(SDL_Renderer *renderer);
 
 int main(int argc, char **argv)
@@ -97,6 +114,7 @@ int main(int argc, char **argv)
         SDL_Quit();
         return 1;
     }
+
     cargarMapa();
     buscarPersonajes();
 
@@ -113,15 +131,19 @@ int main(int argc, char **argv)
                     case SDLK_ESCAPE:
                         running = false;
                         break;
+
                     case SDLK_UP:
                         moverJugador(-1, 0);
                         break;
+
                     case SDLK_DOWN:
                         moverJugador(1, 0);
                         break;
+
                     case SDLK_LEFT:
                         moverJugador(0, -1);
                         break;
+
                     case SDLK_RIGHT:
                         moverJugador(0, 1);
                         break;
@@ -149,11 +171,13 @@ int main(int argc, char **argv)
     guardarPuntaje();
 
     printf("Juego terminado.\n");
+
     if (victoria) {
         printf("Ganaste.\n");
     } else {
         printf("Perdiste.\n");
     }
+
     printf("Puntaje final: %d\n", puntos);
 
     SDL_DestroyRenderer(renderer);
@@ -171,13 +195,17 @@ void cargarMapa(void)
 
     if (archivo == NULL) {
         printf("No se encontro mapa.txt, se usara un mapa por defecto.\n");
+
         for (fila = 0; fila < FILAS; fila++) {
             int col;
+
             for (col = 0; col < COLUMNAS; col++) {
                 mapa[fila][col] = mapaDefault[fila][col];
             }
+
             mapa[fila][COLUMNAS] = '\0';
         }
+
         return;
     }
 
@@ -197,14 +225,16 @@ void cargarMapa(void)
         }
 
         mapa[fila][COLUMNAS] = '\0';
-            }
+    }
 
     fclose(archivo);
 }
 
 void buscarPersonajes(void)
 {
-    int fila, col;
+    int fila;
+    int col;
+
     totalFantasmas = 0;
     pellets = 0;
 
@@ -260,10 +290,10 @@ void moverFantasmas(void)
 
     for (i = 0; i < totalFantasmas; i++) {
         int intento;
-        int nuevaFila = fantasmaFila[i];
-        int nuevaCol = fantasmaCol[i];
+        int nuevaFila;
+        int nuevaCol;
 
-        /* A veces persigue al jugador y a veces cambia al azar. */
+        /* 70% intenta perseguir, 30% se mueve al azar. */
         if (rand() % 10 < 7) {
             if (jugadorCol < fantasmaCol[i]) {
                 fantasmaDir[i] = 2;
@@ -299,7 +329,7 @@ void moverFantasmas(void)
                 fantasmaCol[i] = nuevaCol;
                 break;
             }
-    
+
             fantasmaDir[i] = rand() % 4;
         }
     }
@@ -348,7 +378,6 @@ void guardarPuntaje(void)
 
 void dibujarTextoSimple(SDL_Renderer *renderer, int x, int y, int numero)
 {
-    /* Numeros muy simples hechos con rectangulos para no usar SDL_ttf. */
     SDL_Rect r = {x, y, 8, 18};
     int i;
 
@@ -360,14 +389,21 @@ void dibujarTextoSimple(SDL_Renderer *renderer, int x, int y, int numero)
 
 void renderizar(SDL_Renderer *renderer)
 {
-    int fila, col, i;
+    int fila;
+    int col;
+    int i;
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     for (fila = 0; fila < FILAS; fila++) {
         for (col = 0; col < COLUMNAS; col++) {
-            SDL_Rect cuadro = {col * TAM, fila * TAM + ALTO_INFO, TAM, TAM};
+            SDL_Rect cuadro = {
+                col * TAM,
+                fila * TAM + ALTO_INFO,
+                TAM,
+                TAM
+            };
 
             if (mapa[fila][col] == '#') {
                 SDL_SetRenderDrawColor(renderer, 0, 60, 200, 255);
@@ -384,6 +420,7 @@ void renderizar(SDL_Renderer *renderer)
                     8,
                     8
                 };
+
                 SDL_SetRenderDrawColor(renderer, 255, 220, 120, 255);
                 SDL_RenderFillRect(renderer, &pellet);
             }
@@ -396,6 +433,18 @@ void renderizar(SDL_Renderer *renderer)
         TAM - 8,
         TAM - 8
     };
+
+    SDL_SetRenderDrawColor(renderer, 255, 230, 0, 255);
+    SDL_RenderFillRect(renderer, &jugador);
+
+    for (i = 0; i < totalFantasmas; i++) {
+        SDL_Rect fantasma = {
+            fantasmaCol[i] * TAM + 4,
+            fantasmaFila[i] * TAM + ALTO_INFO + 4,
+            TAM - 8,
+            TAM - 8
+        };
+
         SDL_SetRenderDrawColor(renderer, 255, 60, 90, 255);
         SDL_RenderFillRect(renderer, &fantasma);
     }
